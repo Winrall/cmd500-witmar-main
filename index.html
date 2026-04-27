@@ -496,8 +496,7 @@
         seasonWidePoints.set(key, value.points || 0);
       });
 
-      if (currentSeason === 'Pre Season') {
-        rows.forEach(function (row) {
+          rows.forEach(function (row) {
           const opponentRates = [];
           const opponentPoints = [];
           const myGames = allSeasonData.filter(function (gameRow) {
@@ -523,15 +522,14 @@
         });
       }
 
-      rows.sort(function (a, b) {
-        if (currentSeason === 'Pre Season') {
-          return b.points - a.points
-        || b.winrate - a.winrate
-        || parseFloat(b.omp) - parseFloat(a.omp)
-        || parseFloat(b.omw) - parseFloat(a.omw)
-        || b.wins - a.wins
-        || a.player.localeCompare(b.player);
-        }
+rows.sort(function (a, b) {
+  return b.points - a.points
+    || b.winrate - a.winrate
+    || parseFloat(b.omp) - parseFloat(a.omp)
+    || parseFloat(b.omw) - parseFloat(a.omw)
+    || b.wins - a.wins
+    || a.player.localeCompare(b.player);
+});
         return b.points - a.points || parseFloat(b.winrate) - parseFloat(a.winrate) || b.wins - a.wins || b.games - a.games || a.player.localeCompare(b.player);
       });
 
@@ -564,7 +562,6 @@
       const rows = playerStats();
       const headerRow = document.getElementById('playersHeaderRow');
 
-      if (currentSeason === 'Pre Season') {
         headerRow.innerHTML = [
           '<th>#</th>',
           '<th>Player</th>',
