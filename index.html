@@ -296,15 +296,15 @@
       const lines = normalizedText.split(String.fromCharCode(10));
       if (!lines.length) return [];
 
-      const headerLine = lines.find(function (line) { return line.trim() !== ''; });
-      if (!headerLine) return [];
+      const headerIndex = lines.findIndex(function (line) { return line.trim() !== ''; });
+      if (headerIndex === -1) return [];
 
-      const headers = parseCsvLine(headerLine).map(normalizeHeaderName);
+      const headers = parseCsvLine(lines[headerIndex]).map(normalizeHeaderName);
       const parsedRows = [];
       let gameNumber = 1;
       let countInGame = 0;
 
-      for (let i = 1; i < lines.length; i++) {
+      for (let i = headerIndex + 1; i < lines.length; i++) {
         const rawLine = lines[i];
         if (rawLine == null) continue;
 
@@ -462,7 +462,7 @@
 
       filteredData.forEach(function (row) {
         if (!map.has(row.player)) {
-          map.set(row.player, { player: row.player, games: 0, wins: 0, losses: 0, draws: 0, points: 0, omp: '0.0', omw: '0.0', winrate: '0.0' });
+          map.set(row.player, { player: row.player, games: 0, wins: 0, losses: 0, draws: 0, points: 0, omp: '0.0', omw: '0.0', winrate: 0 });
         }
         const item = map.get(row.player);
         item.games += 1;
@@ -496,41 +496,38 @@
         seasonWidePoints.set(key, value.points || 0);
       });
 
-          rows.forEach(function (row) {
-          const opponentRates = [];
-          const opponentPoints = [];
-          const myGames = allSeasonData.filter(function (gameRow) {
-            return gameRow.player === row.player;
-          });
-
-          myGames.forEach(function (myRow) {
-            allSeasonData.forEach(function (otherRow) {
-              if (otherRow.game === myRow.game && otherRow.player !== row.player) {
-                opponentRates.push(seasonWideWinrate.get(otherRow.player) || 0);
-                opponentPoints.push(seasonWidePoints.get(otherRow.player) || 0);
-              }
-            });
-          });
-
-          row.omp = opponentPoints.length
-            ? (opponentPoints.reduce(function (sum, value) { return sum + value; }, 0) / opponentPoints.length).toFixed(1)
-            : '0.0';
-
-          row.omw = opponentRates.length
-            ? (opponentRates.reduce(function (sum, value) { return sum + value; }, 0) / opponentRates.length).toFixed(1)
-            : '0.0';
+      rows.forEach(function (row) {
+        const opponentRates = [];
+        const opponentPoints = [];
+        const myGames = allSeasonData.filter(function (gameRow) {
+          return gameRow.player === row.player;
         });
-      }
 
-rows.sort(function (a, b) {
-  return b.points - a.points
-    || b.winrate - a.winrate
-    || parseFloat(b.omp) - parseFloat(a.omp)
-    || parseFloat(b.omw) - parseFloat(a.omw)
-    || b.wins - a.wins
-    || a.player.localeCompare(b.player);
-});
-        return b.points - a.points || parseFloat(b.winrate) - parseFloat(a.winrate) || b.wins - a.wins || b.games - a.games || a.player.localeCompare(b.player);
+        myGames.forEach(function (myRow) {
+          allSeasonData.forEach(function (otherRow) {
+            if (otherRow.game === myRow.game && otherRow.player !== row.player) {
+              opponentRates.push(seasonWideWinrate.get(otherRow.player) || 0);
+              opponentPoints.push(seasonWidePoints.get(otherRow.player) || 0);
+            }
+          });
+        });
+
+        row.omp = opponentPoints.length
+          ? (opponentPoints.reduce(function (sum, value) { return sum + value; }, 0) / opponentPoints.length).toFixed(1)
+          : '0.0';
+
+        row.omw = opponentRates.length
+          ? (opponentRates.reduce(function (sum, value) { return sum + value; }, 0) / opponentRates.length).toFixed(1)
+          : '0.0';
+      });
+
+      rows.sort(function (a, b) {
+        return b.points - a.points
+          || b.winrate - a.winrate
+          || parseFloat(b.omp) - parseFloat(a.omp)
+          || parseFloat(b.omw) - parseFloat(a.omw)
+          || b.wins - a.wins
+          || a.player.localeCompare(b.player);
       });
 
       return rows;
@@ -562,44 +559,17 @@ rows.sort(function (a, b) {
       const rows = playerStats();
       const headerRow = document.getElementById('playersHeaderRow');
 
-        headerRow.innerHTML = [
-          '<th>#</th>',
-          '<th>Player</th>',
-          '<th>Pontos</th>',
-          '<th>Winrate</th>',
-          '<th>Wins</th>',
-          '<th>Losses</th>',
-          '<th>Draws</th>',
-          '<th># de jogos</th>',
-          '<th>OMP</th>',
-          '<th>OMW</th>'
-        ].join('');
-
-        document.getElementById('playersTable').innerHTML = rows.map(function (row, i) {
-          const rank = i + 1;
-          return '<tr>' +
-            '<td><span class="badge">' + rank + medalForRank(rank) + '</span></td>' +
-            '<td>' + row.player + '</td>' +
-            '<td>' + row.points + '</td>' +
-            '<td>' + row.winrate + '%</td>' +
-            '<td>' + row.wins + '</td>' +
-            '<td>' + row.losses + '</td>' +
-            '<td>' + row.draws + '</td>' +
-            '<td>' + row.games + '</td>' +
-            '<td>' + row.omp + '</td>' +
-            '<td>' + row.omw + '%</td>' +
-          '</tr>';
-        }).join('');
-        return;
-      }
-
       headerRow.innerHTML = [
         '<th>#</th>',
-        '<th>Jogador</th>',
+        '<th>Player</th>',
         '<th>Pontos</th>',
         '<th>Winrate</th>',
         '<th>Wins</th>',
-        '<th>Jogos</th>'
+        '<th>Losses</th>',
+        '<th>Draws</th>',
+        '<th># de jogos</th>',
+        '<th>OMP</th>',
+        '<th>OMW</th>'
       ].join('');
 
       document.getElementById('playersTable').innerHTML = rows.map(function (row, i) {
@@ -610,7 +580,11 @@ rows.sort(function (a, b) {
           '<td>' + row.points + '</td>' +
           '<td>' + row.winrate + '%</td>' +
           '<td>' + row.wins + '</td>' +
+          '<td>' + row.losses + '</td>' +
+          '<td>' + row.draws + '</td>' +
           '<td>' + row.games + '</td>' +
+          '<td>' + row.omp + '</td>' +
+          '<td>' + row.omw + '%</td>' +
         '</tr>';
       }).join('');
     }
