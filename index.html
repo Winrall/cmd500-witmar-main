@@ -473,7 +473,7 @@
       });
 
       const rows = Array.from(map.values()).map(function (x) {
-        x.winrate = ((x.wins / x.games) * 100).toFixed(1);
+        x.winrate = Number(((x.wins / x.games) * 100).toFixed(1));
         return x;
       });
 
@@ -525,11 +525,11 @@
 
       rows.sort(function (a, b) {
         if (currentSeason === 'Pre Season') {
-          return b.points - a.points 
-        || parseFloat(b.winrate) - parseFloat(a.winrate)
+          return b.points - a.points
+        || b.winrate - a.winrate
         || parseFloat(b.omp) - parseFloat(a.omp)
         || parseFloat(b.omw) - parseFloat(a.omw)
-        || b.wins - a.wins 
+        || b.wins - a.wins
         || a.player.localeCompare(b.player);
         }
         return b.points - a.points || parseFloat(b.winrate) - parseFloat(a.winrate) || b.wins - a.wins || b.games - a.games || a.player.localeCompare(b.player);
