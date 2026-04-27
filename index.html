@@ -233,9 +233,10 @@
   <script>
     const seasonFiles = {
       'Pre Season': 'preseason.csv',
+      'Season 1': 'season1.csv'
     };
 
-let currentSeason = 'Pre Season';
+    let currentSeason = 'Season 1';
     let allSeasonData = [];
     let filteredData = [];
 
@@ -291,9 +292,8 @@ let currentSeason = 'Pre Season';
     }
 
     function parseGoogleSheetCsv(text) {
-const normalizedText = String(text || '').replaceAll('\r', '');
-const lines = normalizedText.split('\n');
-
+      const normalizedText = String(text || '').replaceAll(String.fromCharCode(13), '');
+      const lines = normalizedText.split(String.fromCharCode(10));
       if (!lines.length) return [];
 
       const headerLine = lines.find(function (line) { return line.trim() !== ''; });
@@ -462,7 +462,7 @@ const lines = normalizedText.split('\n');
 
       filteredData.forEach(function (row) {
         if (!map.has(row.player)) {
-          map.set(row.player, { player: row.player, games: 0, wins: 0, losses: 0, draws: 0, points: 0, omw: '0.0', winrate: '0.0' });
+          map.set(row.player, { player: row.player, games: 0, wins: 0, losses: 0, draws: 0, points: 0, omp: '0.0', omw: '0.0', winrate: '0.0' });
         }
         const item = map.get(row.player);
         item.games += 1;
@@ -477,23 +477,29 @@ const lines = normalizedText.split('\n');
         return x;
       });
 
-      const seasonWideStats = new Map();
+      const seasonWideWinrate = new Map();
+      const seasonWidePoints = new Map();
       const seasonPlayers = new Map();
+
       allSeasonData.forEach(function (row) {
         if (!seasonPlayers.has(row.player)) {
-          seasonPlayers.set(row.player, { games: 0, wins: 0 });
+          seasonPlayers.set(row.player, { games: 0, wins: 0, points: 0 });
         }
         const p = seasonPlayers.get(row.player);
         p.games += 1;
         if (row.result === 'Win') p.wins += 1;
+        p.points += Number(row.points || 0);
       });
+
       seasonPlayers.forEach(function (value, key) {
-        seasonWideStats.set(key, value.games ? ((value.wins / value.games) * 100) : 0);
+        seasonWideWinrate.set(key, value.games ? ((value.wins / value.games) * 100) : 0);
+        seasonWidePoints.set(key, value.points || 0);
       });
 
       if (currentSeason === 'Pre Season') {
         rows.forEach(function (row) {
           const opponentRates = [];
+          const opponentPoints = [];
           const myGames = allSeasonData.filter(function (gameRow) {
             return gameRow.player === row.player;
           });
@@ -501,10 +507,15 @@ const lines = normalizedText.split('\n');
           myGames.forEach(function (myRow) {
             allSeasonData.forEach(function (otherRow) {
               if (otherRow.game === myRow.game && otherRow.player !== row.player) {
-                opponentRates.push(seasonWideStats.get(otherRow.player) || 0);
+                opponentRates.push(seasonWideWinrate.get(otherRow.player) || 0);
+                opponentPoints.push(seasonWidePoints.get(otherRow.player) || 0);
               }
             });
           });
+
+          row.omp = opponentPoints.length
+            ? (opponentPoints.reduce(function (sum, value) { return sum + value; }, 0) / opponentPoints.length).toFixed(1)
+            : '0.0';
 
           row.omw = opponentRates.length
             ? (opponentRates.reduce(function (sum, value) { return sum + value; }, 0) / opponentRates.length).toFixed(1)
@@ -514,7 +525,7 @@ const lines = normalizedText.split('\n');
 
       rows.sort(function (a, b) {
         if (currentSeason === 'Pre Season') {
-          return b.points - a.points || parseFloat(b.omw) - parseFloat(a.omw) || b.wins - a.wins || a.player.localeCompare(b.player);
+          return b.points - a.points || parseFloat(b.omp) - parseFloat(a.omp) || parseFloat(b.omw) - parseFloat(a.omw) || b.wins - a.wins || a.player.localeCompare(b.player);
         }
         return b.points - a.points || parseFloat(b.winrate) - parseFloat(a.winrate) || b.wins - a.wins || b.games - a.games || a.player.localeCompare(b.player);
       });
@@ -553,11 +564,13 @@ const lines = normalizedText.split('\n');
           '<th>#</th>',
           '<th>Player</th>',
           '<th>Pontos</th>',
+          '<th>Winrate</th>',
           '<th>Wins</th>',
           '<th>Losses</th>',
           '<th>Draws</th>',
           '<th># de jogos</th>',
-          '<th>Tie Breaker (OMW)</th>'
+          '<th>OMP</th>',
+          '<th>OMW</th>'
         ].join('');
 
         document.getElementById('playersTable').innerHTML = rows.map(function (row, i) {
@@ -566,10 +579,12 @@ const lines = normalizedText.split('\n');
             '<td><span class="badge">' + rank + medalForRank(rank) + '</span></td>' +
             '<td>' + row.player + '</td>' +
             '<td>' + row.points + '</td>' +
+            '<td>' + row.winrate + '%</td>' +
             '<td>' + row.wins + '</td>' +
             '<td>' + row.losses + '</td>' +
             '<td>' + row.draws + '</td>' +
             '<td>' + row.games + '</td>' +
+            '<td>' + row.omp + '</td>' +
             '<td>' + row.omw + '%</td>' +
           '</tr>';
         }).join('');
